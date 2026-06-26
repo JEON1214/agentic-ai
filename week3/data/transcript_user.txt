@@ -1,0 +1,21 @@
+0:02 2 seconds today we are going to see a react chart application in Source app.js we here I created browser routes and inside routes
+0:11 11 seconds I created a path for home page and the path for login and register page I imported
+0:18 18 seconds login and register from pages three pages here I created a folder for register and login
+0:26 26 seconds if a user has already registered he can log in like created a container for
+0:33 33 seconds email and password you can see here logo group chat and title login and if the user is new he can go for the
+0:42 42 seconds register page the link link tag here and here and added handle submit hook
+0:49 49 seconds where email and password to take the values from the user and activate function sign
+0:57 57 seconds in with email and password it is Firebase authentication I imported it in register you can see
+1:04 1 minute, 4 seconds head the display name email password and a photo from the file
+1:11 1 minute, 11 seconds here the link to login page here also I added a hook
+1:18 1 minute, 18 seconds here handle who handle submit hook here the display name email password and display picture from my file
+1:28 1 minute, 28 seconds from the file of the computer here I imported
+1:35 1 minute, 35 seconds turn the I created area Firebase data database
+1:44 1 minute, 44 seconds I imported the fire fire storage we will see the file
+1:53 1 minute, 53 seconds it is the database of these chat application and you can see I uploaded some files here you will see some authentications I
+2:01 2 minutes, 1 second used email here are some users who are already logging now we will see if we can this is the
+2:09 2 minutes, 9 seconds group chat application here we have one user already logging now we
+2:17 2 minutes, 17 seconds will log out here you can see it is for login page and those who are new you can add from
+2:27 2 minutes, 27 seconds register now we are already a user so we will try to login
+2:48 2 minutes, 48 seconds yes it is you know see the display picture has been changed and this is the code in the git Repository
+2:56 2 minutes, 56 seconds thank you
