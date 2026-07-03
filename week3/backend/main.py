@@ -32,7 +32,7 @@ except ImportError:
 
 # Hardcoded fallback (remove after .env is working)
 if not os.environ.get("GOOGLE_API_KEY"):
-    os.environ["GOOGLE_API_KEY"] = "AQ.Ab8RN6K6P_lv0aJjWLgCqntCG5ypeGCS9ZPvOeh8KGgQJpiXBQ"
+    os.environ["GOOGLE_API_KEY"] = ""
 
 # =========================
 # APP INIT
