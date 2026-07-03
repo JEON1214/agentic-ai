@@ -113,7 +113,6 @@
         grid-template-columns: 300px 1fr;
         min-height: 600px;
       }
-
       /* ── Sidebar ─────────────────────────────────── */
       .sidebar {
         border-right: 1px solid var(--border);
@@ -350,6 +349,125 @@
         text-transform: uppercase;
       }
 
+      /* RAG Triad badge */
+      .triad {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+      .triad-badge {
+        font-size: 0.72rem;
+        padding: 3px 10px;
+        border-radius: var(--radius-pill);
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.04);
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .triad-badge .score {
+        font-weight: 600;
+      }
+      .triad-badge.good  { border-color: rgba(52,211,153,0.3); color: #6ee7b7; }
+      .triad-badge.ok    { border-color: rgba(251,191,36,0.3);  color: #fcd34d; }
+      .triad-badge.poor  { border-color: rgba(248,113,113,0.3); color: #fca5a5; }
+
+      /* ── Info / Explanation panel ───────────────── */
+      .info-panel {
+        border-top: 1px solid var(--border);
+        padding: 28px 26px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        background: rgba(255,255,255,0.01);
+      }
+      .info-panel h3 {
+        font-family: var(--font-head);
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 14px;
+        background: linear-gradient(130deg, var(--accent), var(--accent2));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .info-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 18px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .info-card-title {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .info-card-title .badge {
+        font-size: 0.7rem;
+        padding: 2px 8px;
+        border-radius: var(--radius-pill);
+        background: rgba(79,156,249,0.12);
+        border: 1px solid rgba(79,156,249,0.2);
+        color: var(--accent);
+        font-weight: 500;
+      }
+      .info-card p {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        line-height: 1.6;
+      }
+      .info-card ul {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .info-card ul li {
+        font-size: 0.81rem;
+        color: var(--text-muted);
+        line-height: 1.5;
+        padding-left: 14px;
+        position: relative;
+      }
+      .info-card ul li::before {
+        content: '▸';
+        position: absolute;
+        left: 0;
+        color: var(--accent);
+        font-size: 0.7rem;
+      }
+      .info-card ul li strong { color: var(--text); font-weight: 500; }
+      .score-legend {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 4px;
+      }
+      .score-legend span {
+        font-size: 0.75rem;
+        padding: 3px 10px;
+        border-radius: var(--radius-pill);
+      }
+      .score-legend .good { background: rgba(52,211,153,0.1); color: #6ee7b7; border: 1px solid rgba(52,211,153,0.25); }
+      .score-legend .ok   { background: rgba(251,191,36,0.1);  color: #fcd34d; border: 1px solid rgba(251,191,36,0.25); }
+      .score-legend .poor { background: rgba(248,113,113,0.1); color: #fca5a5; border: 1px solid rgba(248,113,113,0.25); }
+      @media (max-width: 700px) {
+        .info-grid { grid-template-columns: 1fr; }
+      }
+
       /* Typing indicator */
       .typing { align-self: flex-start; display: flex; gap: 5px; padding: 14px 18px; }
       .typing span {
@@ -437,7 +555,7 @@
           if (histRef.current) histRef.current.scrollTop = histRef.current.scrollHeight;
         }, [messages, loading]);
 
-        const push = (speaker, text) => setMessages(p => [...p, { speaker, text }]);
+        const push = (speaker, text, triad = null) => setMessages(p => [...p, { speaker, text, triad }]);
 
         /* Upload */
         const handleUpload = async () => {
@@ -478,7 +596,7 @@
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.detail || 'Chat failed');
-            push('agent', data.answer);
+            push('agent', data.answer, data.triad || null);
           } catch (e) {
             push('agent', e.message || 'Something went wrong. Is the backend running?');
           } finally {
@@ -487,12 +605,32 @@
         };
 
         /* Rendered messages */
-        const msgNodes = messages.map((m, i) =>
-          h('div', { key: i, className: `msg ${m.speaker}` },
-            m.speaker !== 'system' && h('div', { className: 'msg-label' }, m.speaker === 'user' ? 'You' : 'Agent'),
-            h('div', null, m.text)
-          )
-        );
+        const msgNodes = messages.map((m, i) => {
+          const triadNode = m.triad ? (() => {
+            const badges = [
+              { label: 'Answer Relevance', val: m.triad.answer_relevance },
+              { label: 'Context Relevance', val: m.triad.context_relevance },
+              { label: 'Groundedness', val: m.triad.groundedness },
+              { label: 'RAG Score', val: m.triad.rag_score },
+            ];
+            return h('div', { className: 'triad' },
+              ...badges.map(b => {
+                const cls = b.val >= 50 ? 'good' : b.val >= 25 ? 'ok' : 'poor';
+                return h('span', { className: `triad-badge ${cls}` },
+                  b.label, ': ', h('span', { className: 'score' }, b.val.toFixed(1) + '%')
+                );
+              })
+            );
+          })() : null;
+
+          return h('div', { key: i, className: `msg ${m.speaker}` },
+            m.speaker !== 'system' && h('div', { className: 'msg-label' },
+              m.speaker === 'user' ? 'You' : 'Agent'
+            ),
+            h('div', null, m.text),
+            triadNode
+          );
+        });
 
         if (loading) msgNodes.push(
           h('div', { key: 'typing', className: 'msg agent typing' },
@@ -614,6 +752,85 @@
                   onClick: handleChat,
                   disabled: loading || !query.trim()
                 }, h(SendIcon))
+              )
+            ),
+
+            /* explanation panel */
+            h('section', { className: 'info-panel' },
+              h('h3', null, '⚙️ How This Chatbot Works'),
+              h('div', { className: 'info-grid' },
+
+                /* RAG Triad card */
+                h('div', { className: 'info-card' },
+                  h('div', { className: 'info-card-title' },
+                    '📐 RAG Triad Evaluation',
+                    h('span', { className: 'badge' }, 'Quality Check')
+                  ),
+                  h('p', null,
+                    'Every agent response is automatically scored across three dimensions to measure answer quality:'
+                  ),
+                  h('ul', null,
+                    h('li', null, h('strong', null, 'Answer Relevance'), ' — Does the answer actually address what you asked?'),
+                    h('li', null, h('strong', null, 'Context Relevance'), ' — Does the retrieved transcript chunk relate to your question?'),
+                    h('li', null, h('strong', null, 'Groundedness'), ' — Is the answer based on the retrieved context, not hallucinated?'),
+                    h('li', null, h('strong', null, 'RAG Score'), ' — Harmonic mean of all three. Higher = better overall quality.')
+                  ),
+                  h('div', { className: 'score-legend' },
+                    h('span', { className: 'good' }, '≥ 50% Good'),
+                    h('span', { className: 'ok' },   '≥ 25% OK'),
+                    h('span', { className: 'poor' }, '< 25% Poor')
+                  )
+                ),
+
+                /* Exponential Backoff card */
+                h('div', { className: 'info-card' },
+                  h('div', { className: 'info-card-title' },
+                    '🔁 Exponential Backoff',
+                    h('span', { className: 'badge' }, 'Reliability')
+                  ),
+                  h('p', null,
+                    'When the Gemini API is rate-limited (too many requests), the backend automatically retries with increasing wait times instead of failing immediately:'
+                  ),
+                  h('ul', null,
+                    h('li', null, h('strong', null, 'Attempt 1'), ' — fails → wait 1 second'),
+                    h('li', null, h('strong', null, 'Attempt 2'), ' — fails → wait 2 seconds'),
+                    h('li', null, h('strong', null, 'Attempt 3'), ' — fails → wait 4 seconds'),
+                    h('li', null, h('strong', null, 'Attempt 4'), ' — fails → wait 8 seconds'),
+                    h('li', null, h('strong', null, 'Attempt 5'), ' — final attempt before fallback')
+                  ),
+                  h('p', null,
+                    'If all retries fail, the system falls back to a local keyword-extraction answer so you always get a response.'
+                  )
+                ),
+
+                /* RAG Pipeline card */
+                h('div', { className: 'info-card' },
+                  h('div', { className: 'info-card-title' },
+                    '🔍 RAG Pipeline',
+                    h('span', { className: 'badge' }, 'Retrieval')
+                  ),
+                  h('p', null, 'Retrieval-Augmented Generation (RAG) works in 3 steps:'),
+                  h('ul', null,
+                    h('li', null, h('strong', null, '1. Chunk'), ' — Your transcript is split into 20 overlapping windows using timestamp boundaries.'),
+                    h('li', null, h('strong', null, '2. Retrieve'), ' — TF-IDF cosine similarity finds the most relevant chunks for your question.'),
+                    h('li', null, h('strong', null, '3. Generate'), ' — Gemini reads the top chunks and writes a focused answer, grounded in your data.')
+                  )
+                ),
+
+                /* Scores Meaning card */
+                h('div', { className: 'info-card' },
+                  h('div', { className: 'info-card-title' },
+                    '📊 Reading the Scores',
+                    h('span', { className: 'badge' }, 'Guide')
+                  ),
+                  h('p', null, 'Use the RAG Triad scores to understand why an answer is good or bad:'),
+                  h('ul', null,
+                    h('li', null, h('strong', null, 'Low Answer Relevance'), ' — The question topic is not in the transcript.'),
+                    h('li', null, h('strong', null, 'Low Context Relevance'), ' — The retriever found unrelated chunks. Try rephrasing.'),
+                    h('li', null, h('strong', null, 'Low Groundedness'), ' — The answer may be hallucinated (not from the transcript).'),
+                    h('li', null, h('strong', null, 'High RAG Score'), ' — The answer is relevant, grounded, and trustworthy.')
+                  )
+                )
               )
             )
           )
