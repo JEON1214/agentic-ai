@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Activity 13 RAG Chat</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #060816;
+        --bg-2: #10172a;
+        --panel: rgba(15, 23, 42, 0.95);
+        --panel-2: rgba(30, 41, 59, 0.95);
+        --text: #f8fafc;
+        --muted: #94a3b8;
+        --accent: #8b5cf6;
+        --accent-2: #22d3ee;
+        --border: rgba(255,255,255,0.12);
+        --user: linear-gradient(135deg, #8b5cf6, #6366f1);
+        --bot: #1f2937;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: radial-gradient(circle at top left, #172554, var(--bg) 45%, #020617 100%);
+        color: var(--text);
+        min-height: 100vh;
+        padding: 20px;
+      }
+      .chat-shell {
+        max-width: 1100px;
+        margin: 0 auto;
+        display: grid;
+        gap: 16px;
+      }
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 18px 22px;
+        border-radius: 20px;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid var(--border);
+        backdrop-filter: blur(14px);
+      }
+      .topbar h1 { margin: 0; font-size: 1.35rem; }
+      .topbar p { margin: 4px 0 0; color: var(--muted); font-size: 0.95rem; }
+      .chip { display: inline-block; padding: 6px 10px; border-radius: 999px; background: rgba(34,211,238,0.14); color: #a5f3fc; font-size: 0.8rem; margin-right: 8px; }
+      .chat-card {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 16px;
+        min-height: 70vh;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        padding: 16px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+      }
+      .sidebar h3, .main h3 { margin-top: 0; margin-bottom: 10px; }
+      .sidebar p, .main p { color: var(--muted); line-height: 1.5; }
+      .field { display: grid; gap: 6px; margin-top: 10px; }
+      .field label { font-size: 0.9rem; color: var(--muted); }
+      input, textarea, button {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--panel-2);
+        color: var(--text);
+        font-size: 0.95rem;
+      }
+      input:focus, textarea:focus { outline: 2px solid rgba(34,211,238,0.25); border-color: var(--accent-2); }
+      button {
+        cursor: pointer;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        color: #020617;
+        font-weight: 700;
+        border: none;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      button:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(34,211,238,0.2); }
+      .messages {
+        height: 470px;
+        overflow: auto;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background: linear-gradient(180deg, rgba(2,6,23,0.65), rgba(15,23,42,0.7));
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        padding: 14px;
+      }
+      .bubble {
+        max-width: 80%;
+        padding: 12px 14px;
+        border-radius: 16px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+      }
+      .bubble.user { align-self: flex-end; background: var(--user); color: white; }
+      .bubble.bot { align-self: flex-start; background: var(--bot); color: var(--text); }
+      .composer { display: flex; gap: 10px; margin-top: 12px; }
+      .composer textarea { min-height: 48px; resize: none; }
+      .status { margin-top: 10px; color: #a5f3fc; min-height: 1.2em; }
+      @media (max-width: 860px) { .chat-card { grid-template-columns: 1fr; } .messages { height: 360px; } }
+    </style>
+  </head>
+  <body>
+    <div class="chat-shell">
+      <div class="topbar">
+        <div>
+          <span class="chip">AI Assistant</span>
+          <h1>RAG Chat Assistant</h1>
+          <p>Ask questions and get grounded answers from your uploaded transcript.</p>
+        </div>
+      </div>
+
+      <div class="chat-card">
+        <div class="panel sidebar">
+          <h3>Upload transcript</h3>
+          <p>Choose a plain text file and start a grounded conversation.</p>
+          <div class="field">
+            <label for="collection">Collection name</label>
+            <input id="collection" placeholder="Collection name" />
+          </div>
+          <div class="field">
+            <label for="userId">User ID</label>
+            <input id="userId" placeholder="User ID" />
+          </div>
+          <div class="field">
+            <label for="fileInput">Transcript file</label>
+            <input id="fileInput" type="file" />
+          </div>
+          <button onclick="uploadFile()">Upload transcript</button>
+          <div id="uploadStatus" class="status"></div>
+        </div>
+
+        <div class="panel main">
+          <h3>Chat</h3>
+          <p>Ask a question and the assistant will respond from your uploaded content.</p>
+          <div id="messages" class="messages">
+            <div class="bubble bot">Hello! Upload a transcript, then ask me anything about it.</div>
+          </div>
+          <div class="composer">
+            <textarea id="query" rows="2" placeholder="Ask a question about the uploaded content"></textarea>
+            <button onclick="sendChat()">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function addMessage(text, role) {
+        const messages = document.getElementById('messages');
+        const bubble = document.createElement('div');
+        bubble.className = `bubble ${role}`;
+        bubble.textContent = text;
+        messages.appendChild(bubble);
+        messages.scrollTop = messages.scrollHeight;
+      }
+
+      async function uploadFile() {
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+        const collection = document.getElementById('collection').value || 'default';
+        const userId = document.getElementById('userId').value || 'demo';
+        const status = document.getElementById('uploadStatus');
+
+        if (!file) {
+          status.textContent = 'Please choose a text file first.';
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('collection', collection);
+        formData.append('user_id', userId);
+
+        try {
+          const response = await fetch('/upload', { method: 'POST', body: formData });
+          const data = await response.json();
+          status.textContent = data.status ? `Uploaded: ${data.chunks_indexed} chunks` : data.error;
+          addMessage(`Uploaded ${file.name} successfully.`, 'bot');
+        } catch (err) {
+          status.textContent = 'Upload failed.';
+          addMessage('Upload failed. Please try again.', 'bot');
+        }
+      }
+
+      async function sendChat() {
+        const query = document.getElementById('query').value.trim();
+        const collection = document.getElementById('collection').value || 'default';
+        const userId = document.getElementById('userId').value || 'demo';
+
+        if (!query) return;
+
+        addMessage(query, 'user');
+        document.getElementById('query').value = '';
+        addMessage('Thinking...', 'bot');
+
+        try {
+          const response = await fetch('/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, collection, user_id: userId })
+          });
+          const data = await response.json();
+          const messages = document.getElementById('messages');
+          messages.lastChild.remove();
+          addMessage(data.answer || 'No answer returned.', 'bot');
+        } catch (err) {
+          const messages = document.getElementById('messages');
+          if (messages.lastChild) messages.lastChild.remove();
+          addMessage('Chat request failed.', 'bot');
+        }
+      }
+    </script>
+  </body>
+</html>
