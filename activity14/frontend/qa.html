@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Activity14 — Q&A</title>
+    <style>
+      body{font-family:system-ui,Segoe UI,Arial;margin:24px;background:#f6f9fc}
+      .card{max-width:800px;margin:0 auto;background:#fff;padding:18px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.06)}
+      .input-row{display:flex;gap:8px}
+      input[type=text]{flex:1;padding:10px;border-radius:8px;border:1px solid #ddd}
+      button{padding:10px 14px;border-radius:8px;border:none;background:#2563eb;color:#fff}
+      .answer{margin-top:16px;padding:12px;border-radius:8px;background:#eef2ff}
+      .sources{margin-top:8px;font-size:0.9rem;color:#475569}
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>Q&A — Activity14</h2>
+      <p>Ask a question and the ReAct loop will use the `search_documents` tool.</p>
+      <div class="input-row">
+        <input id="query" type="text" placeholder="Ask something..." />
+        <button id="ask">Ask</button>
+      </div>
+      <div id="result"></div>
+    </div>
+
+    <script>
+      const askBtn = document.getElementById('ask');
+      askBtn.onclick = async () => {
+        const q = document.getElementById('query').value.trim();
+        if(!q) return alert('Type a question');
+        const resBox = document.getElementById('result');
+        resBox.innerHTML = '<div class="answer">Thinking…</div>';
+        try{
+          const resp = await fetch('/qa', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query:q})});
+          const data = await resp.json();
+          const answer = data.answer || JSON.stringify(data);
+          let html = `<div class="answer"><strong>Answer:</strong><div>${answer}</div></div>`;
+          if(data.transcript){
+            html += '<div class="sources"><strong>Transcript:</strong><pre style="white-space:pre-wrap">'+JSON.stringify(data.transcript,null,2)+'</pre></div>'
+          }
+          resBox.innerHTML = html;
+        }catch(err){
+          resBox.innerHTML = '<div class="answer">Error: '+err+'</div>';
+        }
+      }
+    </script>
+  </body>
+</html>

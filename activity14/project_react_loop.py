@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 
 try:
     from google.genai import types
-except Exception:
+except ImportError:
     class types:
         class Schema:
             def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -42,22 +42,12 @@ except Exception:
 
 try:
     from activity14.bridging_search_tool import search_documents
-except Exception:
+except ImportError:
     try:
         from bridging_search_tool import search_documents
-    except Exception:
+    except ImportError:
         def search_documents(query: str) -> str:
-            kb = {
-                "react": "ReAct stands for Reasoning + Acting. It interleaves thought and tool calls.",
-                "qdrant": "Qdrant is a vector database for long-term agent memory.",
-                "chunking": "Semantic chunking splits documents at natural boundaries.",
-                "budget": "The travel budget is $2000 for flights and $500 for accommodations.",
-                "rag triad": "The RAG Triad evaluates context relevance, groundedness, and answer relevance.",
-            }
-            for key, doc in kb.items():
-                if key in query.lower():
-                    return f"[Found] {doc}"
-            return "[Not found] No relevant information in the knowledge base."
+            return "Search tool unavailable. Please install qdrant-client and configure Qdrant." 
 
 
 def calculate(expression: str) -> str:
@@ -78,9 +68,9 @@ TOOLS = types.Tool(
         types.FunctionDeclaration(
             name="search_documents",
             description=(
-                "Search the knowledge base for factual information about course topics, budgets, "
-                "stored facts, or known concepts. Use this when the question asks about specific "
-                "content or information that is likely stored in knowledge base memory."
+                "Search the persistent Qdrant knowledge base for factual information "
+                "about course topics, budgets, stored documents, or user memory. Use this "
+                "when the question requires knowledge not already in the conversation."
             ),
             parameters=types.Schema(
                 type="OBJECT",
